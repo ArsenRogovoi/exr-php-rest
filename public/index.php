@@ -17,10 +17,6 @@ try {
     exit;
 }
 
-// server variables
-$method = $_SERVER['REQUEST_METHOD'];
-$uri = trim($_SERVER['REQUEST_URI'], '/');
-
 // function for error sending
 function sendError($message, $statusCode = 400)
 {
@@ -33,8 +29,11 @@ function sendError($message, $statusCode = 400)
 require_once "$dirRoot" . '/src/UserModel.php';
 $userModel = new UserModel($pdo);
 
-// routing
-if ($method === 'GET' && $uri === 'users') {
+// connecting, creating and configurating router
+require_once "$dirRoot" . '/src/Router.php';
+$router = new Router();
+
+$router->addRoute('GET', 'users', function () use ($userModel) {
     try {
         $users = $userModel->getAllUsers();
         if (empty($users)) {
@@ -45,7 +44,8 @@ if ($method === 'GET' && $uri === 'users') {
     } catch (Exception $e) {
         sendError($e->getMessage(), 500);
     }
-} elseif ($method === 'POST' && $uri === 'users') {
+});
+$router->addRoute('POST', 'users', function () use ($userModel) {
     $data = json_decode(file_get_contents('php://input'), true);
 
     // Checking if we have nessecary data
@@ -69,8 +69,8 @@ if ($method === 'GET' && $uri === 'users') {
     } catch (Exception $e) {
         sendError($e->getMessage(), 500);
     }
-} elseif ($method === 'PUT' && preg_match('/users\/(\d+)/', $uri, $matches)) {
-    $id = (int)$matches[1];
+});
+$router->addRoute('PUT', 'users/{id}', function ($id) use ($userModel) {
     $data = json_decode(file_get_contents('php://input'), true);
 
     // validation
@@ -97,9 +97,8 @@ if ($method === 'GET' && $uri === 'users') {
     } catch (Exception $e) {
         sendError($e->getMessage(), 500);
     }
-} elseif ($method === 'DELETE' && preg_match('/users\/(\d+)/', $uri, $matches)) {
-    $id = (int)$matches[1];
-
+});
+$router->addRoute('DELETE', 'users/{id}', function ($id) use ($userModel) {
     try {
         $result = $userModel->deleteUser($id);
         if ($result === 0) {
@@ -111,6 +110,6 @@ if ($method === 'GET' && $uri === 'users') {
     } catch (Exception $e) {
         sendError($e->getMessage(), 500);
     }
-} else {
-    sendError('Route not found.', 404);
-}
+});
+
+$router->dispatch($_SERVER['REQUEST_METHOD'], trim($_SERVER['REQUEST_URI'], '/'));
