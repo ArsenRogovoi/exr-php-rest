@@ -40,16 +40,18 @@ if ($method === 'GET' && $uri === 'users') {
         echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
     }
 } elseif ($method === 'POST' && $uri === 'users') {
+    $data = json_decode(file_get_contents('php://input'), true);
+
     // Checking if we have nessecary data
-    if (!isset($_POST['name']) || !isset($_POST['email'])) {
+    if (!isset($data['name']) || !isset($data['email'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Name and email are required.']);
         exit;
     }
 
     // save data
-    $name = $_POST['name'];
-    $email = $_POST['email'];
+    $name = $data['name'];
+    $email = $data['email'];
 
     // basic validation
     if (strlen($name) < 2) {
