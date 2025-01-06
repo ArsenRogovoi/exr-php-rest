@@ -1,5 +1,7 @@
 <?php
 
+namespace Arsen\ExrPhpRest;
+
 class Router
 {
     private $routes = [];

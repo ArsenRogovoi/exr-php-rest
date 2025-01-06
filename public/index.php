@@ -4,7 +4,10 @@
 $dirRoot = realpath(__DIR__ . '/../');
 $databasePath = realpath(__DIR__ . '/../ users.db');
 
-require_once "$dirRoot" . '/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use Arsen\ExrPhpRest\Router;
+use Arsen\ExrPhpRest\UserModel;
 
 // database connection
 try {

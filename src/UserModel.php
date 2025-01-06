@@ -1,10 +1,12 @@
 <?php
 
+namespace Arsen\ExrPhpRest;
+
 class UserModel
 {
-    private PDO $pdo;
+    private \PDO $pdo;
 
-    public function __construct(PDO $pdo)
+    public function __construct(\PDO $pdo)
     {
         $this->pdo = $pdo;
     }
@@ -14,7 +16,7 @@ class UserModel
         $stmt = $this->pdo->prepare('SELECT * FROM users');
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function createUser(string $name, string $email): void
@@ -26,7 +28,7 @@ class UserModel
         $stmt->execute([
             ":name" => $name,
             ":email" => $email,
-            ":created_at" => (new DateTime())->format('Y-m-d H:i:s'),
+            ":created_at" => (new \DateTime())->format('Y-m-d H:i:s'),
         ]);
     }
 

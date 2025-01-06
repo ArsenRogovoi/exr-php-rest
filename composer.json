@@ -1,0 +1,17 @@
+{
+    "name": "arsen/exr-php-rest",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Arsen\\ExrPhpRest\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Arsen Rogovoi",
+            "email": "arrog13@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
