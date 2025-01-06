@@ -21,70 +21,53 @@ try {
 $method = $_SERVER['REQUEST_METHOD'];
 $uri = trim($_SERVER['REQUEST_URI'], '/');
 
+// function for error sending
+function sendError($message, $statusCode = 400)
+{
+    http_response_code($statusCode);
+    echo json_encode(['error' => $message]);
+    exit;
+}
+
+// connecting and creating object of UserModel
+require_once "$dirRoot" . '/src/UserModel.php';
+$userModel = new UserModel($pdo);
+
+// routing
 if ($method === 'GET' && $uri === 'users') {
     try {
-        $stmt = $pdo->prepare('SELECT * FROM users');
-        $stmt->execute();
-
-        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        if ($users) {
-            http_response_code(200);
-            echo json_encode($users);
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'No users found.']);
+        $users = $userModel->getAllUsers();
+        if (empty($users)) {
+            sendError('No users found.', 404);
         }
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+        http_response_code(200);
+        echo json_encode($users);
+    } catch (Exception $e) {
+        sendError($e->getMessage(), 500);
     }
 } elseif ($method === 'POST' && $uri === 'users') {
     $data = json_decode(file_get_contents('php://input'), true);
 
     // Checking if we have nessecary data
     if (!isset($data['name']) || !isset($data['email'])) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Name and email are required.']);
-        exit;
+        sendError('Name and email are required.');
     }
-
-    // save data
-    $name = $data['name'];
-    $email = $data['email'];
 
     // basic validation
-    if (strlen($name) < 2) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Name must be at least 2 symbols long.']);
-        exit;
+    if (strlen($data['name']) < 2) {
+        sendError('Name must be at least 2 symbols long.');
     }
 
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Email must be a valid e-mail.']);
-        exit;
+    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        sendError('Email must be a valid e-mail.');
     }
 
-    // writting in database
     try {
-        $stmt = $pdo->prepare(
-            'INSERT INTO users (name, email, created_at)
-            VALUES (:name, :email, :created_at)'
-        );
-        $stmt->execute([
-            ":name" => $name,
-            ":email" => $email,
-            ":created_at" => date('Y-m-d H:i:s'),
-        ]);
-
-        http_response_code(201); //201 Created
-        echo json_encode(['message' => 'User was created successfully.']);
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode([
-            'error' => 'Database error: ' . $e->getMessage()
-        ]);
+        $userModel->createUser($data['name'], $data['email']);
+        http_response_code(201);
+        echo json_encode(['message' => 'User was created seccessfully.']);
+    } catch (Exception $e) {
+        sendError($e->getMessage(), 500);
     }
 } elseif ($method === 'PUT' && preg_match('/users\/(\d+)/', $uri, $matches)) {
     $id = (int)$matches[1];
@@ -92,74 +75,42 @@ if ($method === 'GET' && $uri === 'users') {
 
     // validation
     if (!isset($data['name']) || !isset($data['email'])) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Name and email are required.']);
-        exit;
+        sendError('Name and email are required.');
     }
 
-    $name = $data['name'];
-    $email = $data['email'];
-
-    // basic validation
-    if (strlen($name) < 2) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Name must be at least 2 symbols long.']);
-        exit;
+    if (strlen($data['name']) < 2) {
+        sendError('Name must be at least 2 symbols long.');
     }
 
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Email must be a valid e-mail.']);
-        exit;
+    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        sendError('Email must be a valid e-mail.');
     }
 
     try {
-        $stmt = $pdo->prepare(
-            'UPDATE users
-            SET name = :name, email = :email
-            WHERE id = :id'
-        );
-        $stmt->execute([
-            ':name' => $name,
-            ':email' => $email,
-            ':id' => $id,
-        ]);
-
-        if ($stmt->rowCount() === 0) {
-            http_response_code(404);
-            echo json_encode(['error' => 'User not found']);
-            exit;
+        $result = $userModel->updateUser($id, $data['name'], $data['email']);
+        if ($result === 0) {
+            sendError("User not found.", 404);
         }
 
         http_response_code(200);
-        echo json_encode(['message' => 'User updated successfully.']);
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+        echo json_encode(['message' => 'User updated successfully']);
+    } catch (Exception $e) {
+        sendError($e->getMessage(), 500);
     }
 } elseif ($method === 'DELETE' && preg_match('/users\/(\d+)/', $uri, $matches)) {
     $id = (int)$matches[1];
 
     try {
-        $stmt = $pdo->prepare(
-            'DELETE FROM users
-            WHERE id = :id'
-        );
-        $stmt->execute([':id' => $id]);
-
-        if ($stmt->rowCount() === 0) {
-            http_response_code(404);
-            echo json_encode(['error' => 'User not found.']);
-            exit;
+        $result = $userModel->deleteUser($id);
+        if ($result === 0) {
+            sendError('User not found.', 404);
         }
 
         http_response_code(200);
         echo json_encode(['message' => 'User deleted successfully.']);
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    } catch (Exception $e) {
+        sendError($e->getMessage(), 500);
     }
 } else {
-    http_response_code(404);
-    echo "Route not found. $uri";
+    sendError('Route not found.', 404);
 }
