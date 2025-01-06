@@ -4,6 +4,8 @@
 $dirRoot = realpath(__DIR__ . '/../');
 $databasePath = realpath(__DIR__ . '/../ users.db');
 
+require_once "$dirRoot" . '/autoload.php';
+
 // database connection
 try {
     $pdo = new PDO('sqlite:' . $databasePath);
@@ -26,11 +28,9 @@ function sendError($message, $statusCode = 400)
 }
 
 // connecting and creating object of UserModel
-require_once "$dirRoot" . '/src/UserModel.php';
 $userModel = new UserModel($pdo);
 
-// connecting, creating and configurating router
-require_once "$dirRoot" . '/src/Router.php';
+// creating and configurating router
 $router = new Router();
 
 $router->addRoute('GET', 'users', function () use ($userModel) {
